@@ -1,0 +1,535 @@
+module ietf-trustworthiness-claims {
+  yang-version 1.1;
+  namespace 
+   "urn:ietf:params:xml:ns:yang:ietf-trustworthiness-claims";
+  prefix tc;
+  
+  import ietf-yang-types {
+    prefix yang;
+  }
+  import ietf-tcg-algs {
+    prefix taa;
+    reference
+      "draft-ietf-rats-yang-tpm-charra";
+  }
+  import ietf-tpm-remote-attestation {
+    prefix tpm;
+    reference
+      "draft-ietf-rats-yang-tpm-charra";
+  }
+   
+  organization "IETF";
+  contact
+    "WG Web:   <http://tools.ietf.org/wg/rats/>
+     WG List:  <mailto:rats@ietf.org>
+
+     Editor:   Eric Voit
+               <mailto:evoit@cisco.com>";
+               
+  description
+    "This module contains conceptual YANG specifications for  
+    subscribing to attestation streams being generated from TPM chips.
+    
+    Copyright (c) 2020 IETF Trust and the persons identified as  
+    authors of the code.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without 
+    modification, is permitted pursuant to, and subject to the license 
+    terms contained in, the Simplified BSD License set forth in  
+    Section 4.c of the IETF Trust's Legal Provisions Relating to IETF 
+    Documents (https://trustee.ietf.org/license-info).
+
+    This version of this YANG module is part of RFC XXXX; see the RFC 
+    itself for full legal notices.";
+  
+  revision 2021-11-03 {
+    description
+      "Initial version.";    
+    reference 
+      "draft-voit-rats-trustworthy-path-routing";
+  }
+
+
+  /*
+   * TYPEDEF
+   */ 
+
+  typedef trustworthiness-claim {
+    type int8;
+    description
+      "A Verifier asserted value designed to enable a common 
+      understanding of a Verifier trustworthiness appraisal.  The
+      value assignments for this 8 bit signed integer will follow 
+      these guidelines:
+
+      Affirming: The Verifier affirms the Attester support for this 
+      aspect of trustworthiness
+        - Values 2 to 31: A standards enumerated reason for affirming.
+        - Values -2 to -32: A non-standard reason for affirming.
+
+      Warning: The Verifier warns about this aspect of trustworthiness.
+        - Values 32 to 63: A standards enumerated reason for the 
+          warning.
+        - Values -33 to -64: A non-standard reason for the warning.
+
+      Contraindicated: The Verifier asserts the Attester is explicitly 
+      untrustworthy in regard to this aspect.    
+        - Values 64 to 127: A standards enumerated reason for the 
+          contraindication.
+        - Values -65 to -128: A non-standard reason for the 
+          contraindication.
+  
+      None: The Verifier makes no assertions about this Trustworthiness 
+      Claim.  The following values are reserved with the following 
+      meanings across all instances of trustworthiness-claim.
+        - Value 0: Note: this should always be always treated 
+          equivalently by the Relying Party as no claim being made. 
+          I.e., the RP's Appraisal Policy for Attestation Results 
+          SHOULD NOT make any distinction between a Trustworthiness 
+          Claim with enumeration '0', and no Trustworthiness Claim 
+          being provided.
+        - Value 1: The Evidence received contains unexpected elements 
+          which the Verifier is unable to parse.  An example might be 
+          that the wrong type of Evidence has been delivered.
+        - Value -1: An unexpected error occurred during the Verifier's 
+          appraisal processing. Note: while no claim is being made, the 
+          Relying Party MAY make a distinction between a 
+          Trustworthiness Claim with enumeration '-1', and no 
+          Trustworthiness Claim being provided.";
+  }
+  
+  typedef hardware {
+    type trustworthiness-claim;
+    description
+      "A Verifier has appraised any Attester hardware and firmware 
+      which are able to expose fingerprints of their identity and 
+      running code.
+      
+      The following are specific reserved values of hardware and
+      the meanings of these reserved values:
+      
+      0: No assertion     
+      
+      1: The Verifer cannot parse unexpected Evidence
+      
+      -1:Verifier malfunction
+           
+      2: An Attester has passed its hardware and/or firmware 
+         verifications needed to demonstrate that these are 
+         genuine/supported.
+
+      32:An Attester contains only genuine/supported hardware and/or 
+         firmware, but there are known security vulnerabilities.
+   
+      96:Attester hardware and/or firmware is recognized, but its 
+         trustworthiness is contraindicated.
+   
+      97:A Verifier does not recognize an Attester's hardware or 
+         firmware, but it should be recognized.";
+  }
+  
+  typedef instance-identity {
+    type trustworthiness-claim;
+    description
+      "A Verifier has appraised an Attesting Environment's unique 
+      identity based upon private key signed Evidence which can be 
+      correlated to a unique instantiated instance of the Attester.  
+      (Note: this Trustworthiness Claim should only be generated if 
+      the Verifier actually expects to recognize the unique identity 
+      of the Attester.)
+
+      The following are specific reserved values of instance-identity 
+      and the meanings of these reserved values:
+      
+      0: No assertion     
+      
+      1: The Verifer cannot parse unexpected Evidence
+      
+      -1:Verifier malfunction
+            
+      2: The Attesting Environment is recognized, and the associated 
+         instance of the Attester is not known to be compromised.
+   
+      96:The Attesting Environment is recognized, and but its unique 
+         private key indicates a device which is not trustworthy.
+   
+      97:The Attesting Environment is not recognized; however the 
+         Verifier believes it should be.";
+  }
+  
+  typedef executables {
+    type trustworthiness-claim;
+    description
+      "A Verifier has appraised and evaluated relevant runtime files, 
+      scripts, and/or other objects which have been loaded into the 
+      Target environment's memory.
+      
+      The following are specific reserved values of executables and
+      the meanings of these reserved values:
+      
+      0: No assertion     
+      
+      1: The Verifer cannot parse unexpected Evidence
+      
+      -1:Verifier malfunction
+      
+      2: Only a recognized genuine set of approved executables, 
+         scripts, files, and/or objects have been loaded during 
+         and after the boot process.
+   
+      3: Only a recognized genuine set of approved executables have 
+         been loaded during the boot process.
+   
+      32:Only a recognized genuine set of executables, scripts, files, 
+         and/or objects have been loaded.  However the Verifier cannot 
+         vouch for a subset of these due to known bugs or other known 
+         vulnerabilities.
+   
+      33:Runtime memory includes executables, scripts, files, and/or 
+         objects which are not recognized.
+   
+      96:Runtime memory includes executables, scripts, files, and/or 
+         object which are contraindicated.
+      
+      99:Cryptographic validation of the Evidence has failed.";
+  }
+  
+  typedef configuration {
+    type trustworthiness-claim;
+    description
+      "A Verifier has appraised an Attester's configuration, and is 
+      able to make conclusions regarding the exposure of known 
+      vulnerabilities.
+
+      The following are specific reserved values of configuration and
+      the meanings of these reserved values: 
+      
+      0: No assertion     
+      
+      1: The Verifer cannot parse unexpected Evidence
+      
+      -1:Verifier malfunction
+      
+      2: The configuration is a known and approved config
+   
+      3: The configuration includes or exposes no known vulnerabilities
+   
+      32:The configuration includes or exposes known vulnerabilities
+   
+      64:The configuration is unsupportable as it exposes unacceptable 
+         security vulnerabilities.";
+  }
+
+  
+  /*
+   * GROUPINGS
+   */
+
+  grouping trustworthiness-vector {
+    description
+      "Allows the inclusion of a Trustworthiness Vector into
+      other constructs.";
+    container trustworthiness-vector {
+      description
+        "One or more Trustworthiness Claims assigned which expose the 
+        Verifiers evaluation of the Evidence associated with the 
+        AIK which signed as associated TPM Quote.";  
+      leaf hardware {
+        type hardware; 
+        description 
+          "An 8 bit signed integter encoded per the typedef.";
+      }
+      leaf instance-identity {
+        type instance-identity; 
+        description 
+          "An 8 bit signed integter encoded per the typedef.";
+      }
+      leaf executables {
+        type executables; 
+        description 
+          "An 8 bit signed integter encoded per the typedef.";
+      }
+      leaf configuration {
+        type configuration; 
+        description 
+          "An 8 bit signed integter encoded per the typedef.";
+      }
+    }
+  }
+  
+  grouping verifier-evidence {
+    description  
+      "Evidence generated by the Verifier.";
+    leaf appraisal-timestamp {
+      type yang:date-and-time;
+      mandatory true;
+      description
+        "The timestamp of the Verifier's appraisal.  This can be used
+        by a Relying Party to determine the freshness of the 
+        attestation results.";
+    }
+    leaf verifier-algorithm-type {
+      type identityref {
+        base taa:asymmetric;
+      }
+      mandatory true;
+      description
+        "Platform asymmetric algorithm used in the Verifier signature
+        process.";    
+    } 
+    leaf verifier-signature {
+      type binary;
+      mandatory true;
+      description
+        "Signature of the Verifier across all the current objects in 
+        the attestation-results container except for 'verifier-
+        signature' and 'verifier-certificate-keystore-ref'.
+        This assumes CDDL encoding of the objects in the current
+        order of this YANG model.";
+    }   
+    leaf verifier-certificate-keystore-ref {
+      type tpm:certificate-name-ref;
+      mandatory true;
+      description
+        "A reference to a specific certificate to an asymmetric key 
+        in the Keystore for the Verifier which can be used to validate  
+        the 'verifier-signature'. Note that the
+        'name' reference must be globally unique so that it can be 
+        read by the Relying Party in a way which identifies a 
+        specific Verifier."; 
+    }
+  }
+   
+  grouping tpm20-cddl-attestation-results {
+    description
+      "Elements combined into a CDDL representation for TPM2.0.";
+    uses trustworthiness-vector;
+    list tpm20-pcr-selection {
+      key "tpm20-hash-algo";
+      description
+        "Specifies the list of PCRs and Hash Algorithms used by the
+        Verifier.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+         TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.9.7";
+      uses tpm:tpm20-hash-algo;
+      leaf-list pcr-index {
+        type tpm:pcr;
+        description
+          "The numbers of the PCRs associated with the TPM2B_DIGEST.";
+      }
+    }
+    leaf TPM2B_DIGEST {
+      mandatory true;
+      type binary;
+      description
+        "A hash of the latest PCR values (and the hash algorithm used)
+        which have been returned from a Verifier for the selected PCRs
+        identified within TPML_PCR_SELECTION.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+        TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.12.1";
+    }    
+    leaf clock {
+      mandatory true;
+      type uint64;
+      description
+        "Clock is a monotonically increasing counter that advances 
+         whenever power is applied to a TPM2. The value of Clock is 
+         incremented each millisecond.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+         TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.11.2";
+    }
+    leaf reset-counter {
+      mandatory true;
+      type uint32;
+      description
+        "This counter increments on each TPM Reset.  The most common
+        TPM Reset would be due to a hardware power cycle.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+         TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.11.3";
+    }
+    leaf restart-counter {
+      mandatory true;
+      type uint32;
+      description
+        "This counter shall increment by one for each TPM Restart or
+        TPM Resume. The restartCount shall be reset to zero on a TPM
+        Reset.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+         TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.11.4";
+    }
+    leaf safe {
+      mandatory true;
+      type boolean;
+      description
+        "This parameter is set to YES when the value reported in Clock
+        is guaranteed to be unique for the current Owner. It is set to
+        NO when the value of Clock may have been reported in a previous
+        attestation or access.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+        TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.11.5";
+    }
+    leaf attester-certificate-name {
+      mandatory true;
+      description
+        "The Attester is associated with these results.";
+      type tpm:certificate-name-ref;   
+    }
+    uses verifier-evidence;
+  }
+
+  grouping tpm12-cddl-attestation-results {
+    description
+      "Elements combined into a CDDL representation for TPM1.2.";
+    uses trustworthiness-vector;
+    uses tpm:tpm12-pcr-selection;
+    leaf-list tpm12-pcr-value {
+      type binary;
+      description
+        "The list of TPM_PCRVALUEs from each PCR selected in sequence
+        of tpm12-pcr-selection.";
+      reference
+        "https://www.trustedcomputinggroup.org/wp-content/uploads/
+         TPM-Main-Part-2-TPM-Structures_v1.2_rev116_01032011.pdf
+         Section 10.9.7";
+    }
+    uses tpm:tpm12-hash-algo {   
+      refine "tpm12-hash-algo" {
+        mandatory true;
+      }    
+    }
+    leaf TPM12-quote-timestamp {
+      type yang:date-and-time;
+      mandatory true;
+      description
+        "The timestamp for when the indicator of freshness (such as a 
+        nonce) was generated.  This is the indicator of freshness
+        which was used in the generation of the TPM1.2 quote.  This 
+        timestamp can be used by a Relying Party to determine the 
+        freshness of the attestation results.";
+    }
+    leaf attester-certificate-name {
+      mandatory true;
+      description
+        "The Attester is associated with these results.";
+      type tpm:certificate-name-ref;   
+    }
+    uses verifier-evidence;
+  }
+  
+  /*
+   * NOTIFICATIONS
+   */  
+
+  notification tpm20-stamped-passport {
+    description
+      "The augmentation of the most recent Attestation Results 
+      delivered from a Verifier with a TPM2.0 Quote.";
+    container attestation-results {
+      description
+        "The latest Verifier delivered Attestation Results.";
+      uses tpm20-cddl-attestation-results;
+    }
+    container tpm20-quote {
+      description
+        "The TPM2.0 quote delivered in response to a connectivity
+        request.";    
+      leaf TPMS_QUOTE_INFO {
+        type binary;
+        mandatory true;
+        description
+          "A hash of the latest PCR values (and the hash algorithm 
+           used) which have been returned from a Verifier for the 
+           selected PCRs and Hash Algorithms.";
+        reference
+          "https://www.trustedcomputinggroup.org/wp-content/uploads/
+           TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 10.12.1";
+      }
+      leaf quote-signature {
+        type binary;
+        mandatory true;
+        description
+          "Quote signature returned by TPM Quote.  The signature was
+           generated using the key associated with the
+           certificate 'name'.";
+        reference
+          "https://www.trustedcomputinggroup.org/wp-content/uploads/
+           TPM-Rev-2.0-Part-2-Structures-01.38.pdf  Section 11.2.1";
+      }
+    }
+  }
+
+  notification tpm12-stamped-passport {
+    description
+      "The augmentation of the most recent Attestation Results 
+      delivered from a Verifier with a TPM1.2 Quote.";
+    container attestation-results {
+      description
+        "The latest Verifier delivered Attestation Results.";
+      uses tpm12-cddl-attestation-results;
+    }
+    container tpm12-quote {
+      description
+        "The TPM1.2 quote delivered in response to a connectivity
+        request.";    
+      leaf TPM_QUOTE2 {
+        type binary;
+        description
+          "Result of a TPM1.2 Quote2 operation. This includes PCRs,
+           signatures, locality, the provided nonce and other data which
+           can be further parsed to appraise the Attester.";
+        reference
+          "TPM1.2 commands rev116 July 2007, Section 16.5";
+      }
+    }
+  }
+  
+  /*
+   * DATA NODES
+   */  
+
+  container attestation-results {
+    presence
+      "Indicates that Verifier has appraised the security posture of 
+      the Attester, and returned the results within this container.";
+    description
+      "Retains the most recent Attestation Results for this Attester.
+      It must only be written by a Verfier which is to be trusted by a
+      Relying Party."; 
+
+    choice tpm-specification-version {
+      description
+        "Identifies the cryptoprocessor API set which drove the 
+        Attestation Results.";
+      case tpm20-attestation-results-cddl {
+        if-feature "taa:tpm20";
+        description
+          "Attestation Results which are returned from the 
+           evaluation of Evidence which includes a TPM2 quote.";
+        container tpm20-attestation-results-cddl {
+          description
+            "Attestation Results which are returned from the 
+             evaluation of Evidence which includes a TPM2 quote.";
+          uses tpm20-cddl-attestation-results;
+        }
+      }
+      case tpm12-attestation-results-cddl {
+        if-feature "taa:tpm12";
+        description
+          "Attestation Results which are returned from the 
+           evaluation of Evidence which includes a TPM1.2 quote.";
+        container tpm12-attestation-results-cddl {
+          description
+            "Attestation Results which are returned from the 
+             evaluation of Evidence which includes a TPM1.2 quote.";
+          uses tpm12-cddl-attestation-results;
+        }
+      }
+    }            
+  }
+}

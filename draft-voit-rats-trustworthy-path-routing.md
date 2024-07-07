@@ -725,6 +725,11 @@ Vector.
 
 This YANG module imports modules from {{-RATS-YANG}}, {{-crypto-types}} and {{RFC6021}}.
 
+~~~~ YANG
+<CODE BEGINS> ietf-trustworthiness-claims@2024-07-07.yang
+{::include ietf-trustworthiness-claims@2021-11-03.yang}
+<CODE ENDS>
+~~~~
 
 # Security Considerations {#security-considerations}
 
