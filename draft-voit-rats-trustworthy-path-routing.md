@@ -1,6 +1,6 @@
 ---
 v: 3
-docname: draft-voit-rats-trustworthy-path-routing-10
+docname: draft-voit-rats-trustworthy-path-routing-latest
 cat: std
 consensus: 'true'
 pi:
