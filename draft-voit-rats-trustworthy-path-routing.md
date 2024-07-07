@@ -494,7 +494,7 @@ going over TLS more efficient.  Look for this encoding in a new version of
 the draft which is pending.
 
 
-~~~~ yangtree 
+~~~~ yangtree
 module: ietf-trustworthiness-claims
   +--rw attestation-results!
      +--rw (tpm-specification-version)?
